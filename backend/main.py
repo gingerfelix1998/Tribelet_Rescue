@@ -1,4 +1,5 @@
 # --- Required packages ---
+from email_utils import send_order_confirmation_email, save_order_to_s3
 
 # Environment variables:
 from dotenv import load_dotenv
@@ -72,6 +73,34 @@ class AuthRequest(BaseModel):
     username: str | None = None
     email: str
     password: str
+
+
+# Email class:
+class KitOrderRequest(BaseModel):
+    # Customer info
+    customer_email: str
+    customer_name: str
+    
+    # Design details
+    kit_type: str
+    teamwear_color: str
+    emblem_color: str
+    team_name: str
+    design_name: str
+    
+    # Customization details
+    front_image: bool
+    back_image: bool
+    back_print_enabled: bool
+    back_print_text: str = ""
+    back_print_position: int = 50
+    
+    # Order details
+    quantities: dict  # {"XS": 2, "S": 3, etc.}
+    subtotal: float
+    tax: float
+    total: float
+    order_id: str
 
 # --- API FUNCTIONS ---
 
@@ -285,3 +314,48 @@ def login(data: AuthRequest):
     if username:
         return {"message": "Login successful", "username": username}
     raise HTTPException(status_code=401, detail="Invalid email or password")
+
+# --- Email Logic ---
+
+# Add this endpoint to your API FUNCTIONS section:
+@app.post("/api/send-order-confirmation")
+async def send_order_confirmation(order_data: KitOrderRequest):
+    """Send order confirmation email and save order to S3"""
+    try:
+        # Convert Pydantic model to dict
+        order_dict = order_data.dict()
+        
+        # Save order to S3 for record keeping
+        save_order_to_s3(order_dict)
+        
+        # Send confirmation email
+        email_sent = send_order_confirmation_email(order_dict)
+        
+        if email_sent:
+            return {
+                "message": "Order confirmation sent successfully",
+                "order_id": order_data.order_id,
+                "email_sent": True
+            }
+        else:
+            return {
+                "message": "Order saved but email failed to send",
+                "order_id": order_data.order_id,
+                "email_sent": False
+            }
+            
+    except Exception as e:
+        print(f"Error processing order: {str(e)}")
+        # Still try to save the order even if email fails
+        try:
+            save_order_to_s3(order_data.dict())
+        except:
+            pass
+        
+        return {
+            "message": "Order received but confirmation failed",
+            "order_id": order_data.order_id,
+            "email_sent": False,
+            "error": str(e)
+        }
+
