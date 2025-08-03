@@ -1,4 +1,3 @@
-
 // src/kit_steps/PoloCustomizationStep.jsx
 import React, { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -37,6 +36,14 @@ const PoloCustomizationStep = ({
   setTeamName,
   designName,
   setDesignName,
+  frontImage,
+  setFrontImage,
+  backImage,
+  setBackImage,
+  showFrontImage,
+  setShowFrontImage,
+  showBackImage,
+  setShowBackImage,
   onNext,
   onBack
 }) => {
@@ -47,14 +54,10 @@ const PoloCustomizationStep = ({
   const [selectedTeam, setSelectedTeam] = useState("");
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [frontImage, setFrontImage] = useState("");
   const [frontImageScale, setFrontImageScale] = useState(100);
   const [useFrontTeamLogo, setUseFrontTeamLogo] = useState(false);
-  const [backImage, setBackImage] = useState("");
   const [backImageScale, setBackImageScale] = useState(100);
   const [useBackTeamLogo, setUseBackTeamLogo] = useState(false);
-  const [showFrontImage, setShowFrontImage] = useState(true);
-  const [showBackImage, setShowBackImage] = useState(true);
   const [manualEmblemColor, setManualEmblemColor] = useState(false);
   const email = localStorage.getItem("userEmail");
   const navigate = useNavigate();
@@ -98,7 +101,8 @@ const PoloCustomizationStep = ({
       setBackPrint(prev => ({
         ...prev,
         enabled: false,
-        text: ""
+        text: "",
+        position: 50
       }));
       setUseFrontTeamLogo(false);
       setUseBackTeamLogo(false);
@@ -113,11 +117,14 @@ const PoloCustomizationStep = ({
         // Automatically use team logo for front image when team is selected
         setUseFrontTeamLogo(true);
       }
+      // Set the team name
+      setTeamName(team.team_name);
       // Automatically enable back print and set team name
       setBackPrint(prev => ({
         ...prev,
         enabled: true,
-        text: team.team_name.toUpperCase()
+        text: team.team_name.toUpperCase(),
+        position: 50  // Reset position to middle
       }));
     }
   };
@@ -668,6 +675,21 @@ const PoloCustomizationStep = ({
                     className="w-full"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Position: {backPrint.position}%</label>
+                  <input
+                    type="range"
+                    min="30"
+                    max="70"
+                    value={backPrint.position}
+                    onChange={(e) => updateBackPrint('position', parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>Higher</span>
+                    <span>Lower</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -696,9 +718,9 @@ const PoloCustomizationStep = ({
                       alt="Tribelet Logo"
                       className="absolute"
                       style={{
-                        top: '25%',
-                        left: '25%',
-                        width: '15%',
+                        top: '28%',
+                        left: '34%',
+                        width: '8%',
                         height: 'auto',
                         objectFit: 'contain',
                         transform: 'translate(-50%, -50%)'
@@ -712,9 +734,9 @@ const PoloCustomizationStep = ({
                         alt="Front Image"
                         className="absolute"
                         style={{
-                          top: '25%',
-                          left: '75%',
-                          width: `${frontImageScale * 0.25}%`,
+                          top: '28%',
+                          left: '65%',
+                          width: `${frontImageScale * 0.15}%`,
                           height: 'auto',
                           objectFit: 'contain',
                           transform: `translate(-50%, -50%) scale(${frontImageScale / 100})`,
@@ -743,9 +765,9 @@ const PoloCustomizationStep = ({
                         alt="Back Image"
                         className="absolute"
                         style={{
-                          top: '20%',
+                          top: '30%',
                           left: '50%',
-                          width: `${backImageScale * 0.2}%`,
+                          width: `${backImageScale * 0.18}%`,
                           height: 'auto',
                           objectFit: 'contain',
                           transform: `translate(-50%, -50%) scale(${backImageScale / 100})`,
@@ -759,10 +781,10 @@ const PoloCustomizationStep = ({
                       <div
                         className="absolute"
                         style={{
-                          top: '40%',
+                          top: `${backPrint.position}%`,
                           left: '50%',
                           transform: 'translateX(-50%)',
-                          width: '60%',
+                          width: '50%',
                           maxWidth: '80%',
                           textAlign: 'center',
                           fontSize: `${Math.min(backPrint.scale * 0.3, 24)}px`,

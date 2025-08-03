@@ -1,6 +1,9 @@
 // src/kit_steps/ConfirmOrderStep.jsx
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { UserContext } from "../context/UserContext";
+
+const apiUrl = process.env.REACT_APP_API_URL;
 
 const ConfirmOrderStep = ({
   kitType,
@@ -11,8 +14,14 @@ const ConfirmOrderStep = ({
   backPrint,
   teamName,
   designName,
-  onBack
+  onBack,
+  frontImage,
+  backImage,
+  showFrontImage,
+  showBackImage
 }) => {
+  const { username } = useContext(UserContext);
+  const userEmail = localStorage.getItem("userEmail");
   const [quantities, setQuantities] = useState({
     XS: 0,
     S: 0,
@@ -22,6 +31,8 @@ const ConfirmOrderStep = ({
     XXL: 0
   });
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [orderId, setOrderId] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const unitPrice = 25.00; // Base price per polo
@@ -37,12 +48,64 @@ const ConfirmOrderStep = ({
   const tax = subtotal * 0.1; // 10% tax
   const total = subtotal + tax;
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (totalItems === 0) {
       alert("Please select at least one item to order.");
       return;
     }
-    setOrderPlaced(true);
+    
+    setIsSubmitting(true);
+    const generatedOrderId = `TBL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    setOrderId(generatedOrderId);
+    
+    // Prepare order data for email
+    const orderData = {
+      customer_email: userEmail,
+      customer_name: username,
+      kit_type: "Polo Shirt",
+      teamwear_color: teamwearColor,
+      emblem_color: emblemColor,
+      team_name: teamName || "No Team",
+      design_name: designName || "Custom Design",
+      front_image: !!(showFrontImage && frontImage),  // Convert to boolean
+      back_image: !!(showBackImage && backImage),     // Convert to boolean
+      back_print_enabled: backPrint.enabled,
+      back_print_text: backPrint.text || "",
+      back_print_position: backPrint.position || 50,
+      quantities: quantities,
+      subtotal: subtotal,
+      tax: tax,
+      total: total,
+      order_id: generatedOrderId
+    };
+    
+    console.log("Sending order data:", orderData);  // Debug log
+    
+    try {
+      // Send order confirmation email
+      const response = await fetch(`${apiUrl}/send-order-confirmation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(orderData)
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error("Email send failed:", result);
+        // Continue with order even if email fails
+      }
+      
+      setOrderPlaced(true);
+    } catch (error) {
+      console.error("Error sending order:", error);
+      // Continue with order even if email fails
+      setOrderPlaced(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleNewOrder = () => {
@@ -64,7 +127,10 @@ const ConfirmOrderStep = ({
             Your custom polo order has been received. You'll receive a confirmation email shortly.
           </p>
           <p className="text-sm text-green-600">
-            Order #TBL-{Math.random().toString(36).substr(2, 9).toUpperCase()}
+            Order #{orderId}
+          </p>
+          <p className="text-sm text-green-600 mt-2">
+            A confirmation email has been sent to {userEmail}
           </p>
         </div>
 
@@ -158,16 +224,22 @@ const ConfirmOrderStep = ({
                 <span className="font-medium">{teamwearColor}</span>
               </div>
             </div>
-            {frontPrint.enabled && (
+            {showFrontImage && frontImage && (
               <div className="flex justify-between">
-                <span className="text-gray-600">Front Print:</span>
-                <span className="font-medium">"{frontPrint.text}"</span>
+                <span className="text-gray-600">Front Image:</span>
+                <span className="font-medium">Yes</span>
+              </div>
+            )}
+            {showBackImage && backImage && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Back Image:</span>
+                <span className="font-medium">Yes</span>
               </div>
             )}
             {backPrint.enabled && (
               <div className="flex justify-between">
                 <span className="text-gray-600">Back Print:</span>
-                <span className="font-medium">"{backPrint.text}"</span>
+                <span className="font-medium">"{backPrint.text}" at {backPrint.position}%</span>
               </div>
             )}
           </div>
@@ -229,14 +301,14 @@ const ConfirmOrderStep = ({
             </button>
             <button
               onClick={handlePlaceOrder}
-              disabled={totalItems === 0}
+              disabled={totalItems === 0 || isSubmitting}
               className={`flex-1 px-4 py-3 rounded-xl font-semibold transition ${
-                totalItems > 0
+                totalItems > 0 && !isSubmitting
                   ? "bg-[#A461F9] text-white hover:bg-[#934ff2]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >
-              Place Order
+              {isSubmitting ? "Processing..." : "Place Order"}
             </button>
           </div>
         </div>

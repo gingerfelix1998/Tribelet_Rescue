@@ -28,10 +28,17 @@ const CreateKit = () => {
     text: "",
     font: "Arial", 
     scale: 50,
-    color: "#000000"
+    color: "#000000",
+    position: 50
   });
   const [teamName, setTeamName] = useState("");
   const [designName, setDesignName] = useState("");
+  
+  // Additional state for images
+  const [frontImage, setFrontImage] = useState("");
+  const [backImage, setBackImage] = useState("");
+  const [showFrontImage, setShowFrontImage] = useState(true);
+  const [showBackImage, setShowBackImage] = useState(true);
 
   const progressPercentage = ((step - 1) / 2) * 100; // 3 steps total, so step 1 = 0%, step 2 = 50%, step 3 = 100%
 
@@ -80,6 +87,14 @@ const CreateKit = () => {
             setTeamName={setTeamName}
             designName={designName}
             setDesignName={setDesignName}
+            frontImage={frontImage}
+            setFrontImage={setFrontImage}
+            backImage={backImage}
+            setBackImage={setBackImage}
+            showFrontImage={showFrontImage}
+            setShowFrontImage={setShowFrontImage}
+            showBackImage={showBackImage}
+            setShowBackImage={setShowBackImage}
             onNext={() => setStep(3)}
             onBack={() => setStep(1)}
           />
@@ -95,6 +110,10 @@ const CreateKit = () => {
             backPrint={backPrint}
             teamName={teamName}
             designName={designName}
+            frontImage={frontImage}
+            backImage={backImage}
+            showFrontImage={showFrontImage}
+            showBackImage={showBackImage}
             onBack={() => setStep(2)}
           />
         );
